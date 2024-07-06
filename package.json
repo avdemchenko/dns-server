@@ -1,7 +1,7 @@
 {
     "name": "dns-server",
     "description": "Simple DNS server",
-    "type": "module",
+    "type": "commonjs",
     "scripts": {
         "dev": "bun run app/main.ts"
     },
@@ -10,6 +10,9 @@
         "bun": "^1.1.18"
     },
     "devDependencies": {
-        "@types/node": "^20.12.11"
+        "@types/jest": "^29.5.12",
+        "@types/node": "^20.14.10",
+        "jest": "^29.7.0",
+        "ts-jest": "^29.1.5"
     }
 }
