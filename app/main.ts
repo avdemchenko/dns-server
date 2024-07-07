@@ -1,7 +1,11 @@
 import * as dgram from "dgram";
 
+console.log("Logs from your program will appear here!");
+
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
+
 udpSocket.bind(2053, "127.0.0.1");
+
 const constructHeader = ({
                              QR = 0,
                              TC = 0,
@@ -41,9 +45,11 @@ const constructHeader = ({
     buffer.writeInt16BE(ARCOUNT, 10)
     return buffer
 }
+
 type Question = {
     type: number; class: number; domainName: string
 }
+
 const writeQuestions = (questions: Question[]) => {
     return Buffer.concat(questions.map((q) => {
         const typeAndClass = Buffer.alloc(4)
@@ -53,6 +59,7 @@ const writeQuestions = (questions: Question[]) => {
         return Buffer.concat([Buffer.from(s + '\0', 'binary'), typeAndClass])
     }))
 }
+
 type Answer = {
     domainName: string;
     type: number; // 2 bytes
@@ -60,6 +67,7 @@ type Answer = {
     ttl: number; // 4 bytes
     data: string
 }
+
 const writeAnswers = (answers: Answer[]) => {
     return Buffer.concat(answers.map((q) => {
         const buffer = Buffer.alloc(10)
@@ -71,6 +79,7 @@ const writeAnswers = (answers: Answer[]) => {
         return Buffer.concat([Buffer.from(s + '\0', 'binary'), buffer, Buffer.from(q.data + '\0', 'binary')])
     }))
 }
+
 const parsePacket = (data: Buffer) => {
     const packetId = data.readInt16BE()
     const QDCOUNT = data.readInt16BE(4)
@@ -110,9 +119,12 @@ const parsePacket = (data: Buffer) => {
         RA, Z, RCODE, RD, TC, AA, OPCODE, QR, QDCOUNT, packetId, ANCOUNT, NSCOUNT, ARCOUNT
     }
 }
+
 const mapping: Record<string, string> = {
-    'google.com': '\x08\x08\x08\x08'
+    'codecrafters.io': '\x08\x08\x08\x08',
+    'mail.google.com': '\x08\x08\x08\x08'
 }
+
 udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     try {
         console.log(`Received data from ${remoteAddr.address}:${remoteAddr.port}`);
@@ -123,7 +135,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
             type: 1,
             class: 1,
             ttl: 60,
-            data: mapping[q.domainName],
+            data: '\x08\x08\x08\x08',
             domainName: q.domainName
         }))
         const header = constructHeader({
