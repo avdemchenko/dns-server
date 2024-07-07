@@ -67,17 +67,17 @@ export interface DNSQuestion {
 }
 
 export interface DNSAnswer {
-    NAME: string; // The domain name, encoded as a sequence of labels. Each label consists of a length octet followed by that number of octets. The domain name is terminated with a length of 0. -- variable length
+    NAME: string;
 
-    TYPE: RECORD_TYPE; // Type of the query -- 2 bytes integer 16 bits
+    TYPE: RECORD_TYPE;
 
-    CLASS: 1; // Class of the query -- 2 bytes integer 16 bits -- usually set to 1 for internet addresses
+    CLASS: 1;
 
-    TTL: number; // Time to live -- 4 bytes integer 32 bits
+    TTL: number;
 
-    RDLENGTH: number; // Length of the RDATA field -- 2 bytes integer 16 bits
+    RDLENGTH: number;
 
-    RDATA: Buffer; // The resource data -- variable length ex: IP address for A records -- RDLENGTH bytes long
+    RDATA: Buffer;
 }
 
 export interface DNSObject {
