@@ -1,12 +1,32 @@
 {
     "name": "dns-server",
+    "version": "1.0.0",
     "description": "Simple DNS server",
-    "type": "commonjs",
     "scripts": {
-        "dev": "bun run app/main.ts"
+        "test": "jest",
+        "dev:udp": "dotenv -- tsx watch src/udp-server.ts",
+        "dev:http": "dotenv -- tsx watch src/http-server.ts",
+        "dev": "pnpm run dev:http & pnpm run dev:udp",
+        "build": "tsc",
+        "start:http": "node dist/http-server.js",
+        "start:udp": "node dist/udp-server.js",
+        "start": "pnpm run start:http & pnpm run start:udp"
+    },
+    "keywords": [],
+    "license": "ISC",
+    "devDependencies": {
+        "@types/express": "^4.17.21",
+        "@types/jest": "^29.5.12",
+        "@types/node": "^20.14.2",
+        "jest": "^29.7.0",
+        "ts-jest": "^29.1.5",
+        "tsx": "^4.16.0",
+        "typescript": "^5.4.5"
     },
     "dependencies": {
-        "async": "^3.2.0",
-        "bun": "^1.1.18"
+        "@upstash/redis": "^1.31.6",
+        "dotenv-cli": "^7.4.2",
+        "express": "^4.19.2",
+        "zod": "^3.23.8"
     }
 }
