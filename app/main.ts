@@ -1,9 +1,7 @@
 import * as dgram from "dgram";
 
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
-
 udpSocket.bind(2053, "127.0.0.1");
-
 const constructHeader = ({
                              QR = 0,
                              TC = 0,
@@ -43,11 +41,9 @@ const constructHeader = ({
     buffer.writeInt16BE(ARCOUNT, 10)
     return buffer
 }
-
 type Question = {
     type: number; class: number; domainName: string
 }
-
 const writeQuestions = (questions: Question[]) => {
     return Buffer.concat(questions.map((q) => {
         const typeAndClass = Buffer.alloc(4)
@@ -57,7 +53,6 @@ const writeQuestions = (questions: Question[]) => {
         return Buffer.concat([Buffer.from(s + '\0', 'binary'), typeAndClass])
     }))
 }
-
 type Answer = {
     domainName: string;
     type: number; // 2 bytes
@@ -65,7 +60,6 @@ type Answer = {
     ttl: number; // 4 bytes
     data: string
 }
-
 const writeAnswers = (answers: Answer[]) => {
     return Buffer.concat(answers.map((q) => {
         const buffer = Buffer.alloc(10)
@@ -77,20 +71,70 @@ const writeAnswers = (answers: Answer[]) => {
         return Buffer.concat([Buffer.from(s + '\0', 'binary'), buffer, Buffer.from(q.data + '\0', 'binary')])
     }))
 }
-
+const parsePacket = (data: Buffer) => {
+    const packetId = data.readInt16BE()
+    const QDCOUNT = data.readInt16BE(4)
+    const ANCOUNT = data.readInt16BE(6)
+    const NSCOUNT = data.readInt16BE(8)
+    const ARCOUNT = data.readInt16BE(10)
+    let byte = data[2]
+    const QR = (byte & (1 << 7)) && 1
+    const OPCODE = (byte & (0b1111 << 3)) >> 3
+    const AA = (byte & (1 << 2)) && 1
+    const TC = (byte & (1 << 1)) && 1
+    const RD = (byte & 1) && 1
+    byte = data[3]
+    const RA = (byte & (1 << 7)) && 1
+    const Z = byte & (0b111 << 4)
+    const RCODE = byte & 0b1111
+    let index = 12
+    const questions: Question[] = [...new Array(QDCOUNT).keys()].map(() => {
+        let length = data[index++]
+        let domainNameParts: string[] = []
+        while (length !== 0) {
+            domainNameParts.push(data.toString('binary', index, index + length))
+            index += length
+            length = data[index++]
+        }
+        const type = data.readInt16BE(index)
+        const clas = data.readInt16BE(index + 2)
+        index += 4
+        return {
+            domainName: domainNameParts.join('.'),
+            type,
+            class: clas
+        }
+    })
+    return {
+        questions,
+        RA, Z, RCODE, RD, TC, AA, OPCODE, QR, QDCOUNT, packetId, ANCOUNT, NSCOUNT, ARCOUNT
+    }
+}
+const mapping: Record<string, string> = {
+    'google.com': '\x08\x08\x08\x08'
+}
 udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     try {
         console.log(`Received data from ${remoteAddr.address}:${remoteAddr.port}`);
-        const questions: Question[] = [{class: 1, type: 1, domainName: 'google.com'}]
-        const answers = [{
+        const query = parsePacket(data)
+        console.log(query)
+        const {questions, packetId, OPCODE, RD} = query
+        const answers = questions.map((q) => ({
             type: 1,
             class: 1,
             ttl: 60,
-            data: '\x08\x08\x08\x08',
-            domainName: 'google.com'
-        }]
-        writeAnswers(answers)
-        const header = constructHeader({packetId: 1234, QR: 1, QDCOUNT: questions.length, ANCOUNT: answers.length})
+            data: mapping[q.domainName],
+            domainName: q.domainName
+        }))
+        const header = constructHeader({
+            OPCODE,
+            RD,
+            packetId,
+            QR: 1,
+            QDCOUNT: questions.length,
+            ANCOUNT: answers.length,
+            RCODE: OPCODE === 0 ? 0 : 4
+        })
         udpSocket.send(Buffer.concat([header, writeQuestions(questions), writeAnswers(answers)]), remoteAddr.port, remoteAddr.address);
     } catch (e) {
         console.log(`Error sending data: ${e}`);
